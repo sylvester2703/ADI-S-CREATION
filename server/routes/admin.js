@@ -311,7 +311,29 @@ router.get('/export/csv', requireAdminAuth, (req, res) => {
     return res.send(csvContent);
   } catch (err) {
     console.error('Error exporting CSV:', err);
-    return res.status(500).json({ success: false, error: 'Failed to export CSV' });
+    return res.status(500).json({ success: false, error: 'Failed to export CSV.' });
+  }
+});
+
+// DELETE /api/admin/enquiries/:id - Delete an enquiry entry
+router.delete('/enquiries/:id', requireAdminAuth, (req, res) => {
+  try {
+    const { id } = req.params;
+    const existing = db.prepare('SELECT id, reference_number FROM enquiries WHERE id = ?').get(id);
+    if (!existing) {
+      return res.status(404).json({ success: false, error: 'Enquiry entry not found.' });
+    }
+
+    db.prepare('DELETE FROM activity_logs WHERE enquiry_id = ?').run(id);
+    db.prepare('DELETE FROM enquiries WHERE id = ?').run(id);
+
+    return res.json({
+      success: true,
+      message: `Enquiry #${existing.reference_number} deleted successfully.`
+    });
+  } catch (err) {
+    console.error('Error deleting enquiry:', err);
+    return res.status(500).json({ success: false, error: 'Failed to delete enquiry.' });
   }
 });
 

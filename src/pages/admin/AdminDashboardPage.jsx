@@ -19,9 +19,36 @@ import {
   FileSpreadsheet,
   ChevronRight,
   TrendingUp,
-  UserCheck
+  UserCheck,
+  Trash2,
+  Send
 } from 'lucide-react';
 import AdminLeadDrawer from './AdminLeadDrawer';
+
+export const getWhatsAppConfirmationUrl = (lead) => {
+  const customerCleanPhone = (lead.phone || '').replace(/\D/g, '');
+  const formattedPhone = customerCleanPhone.length === 10 ? '91' + customerCleanPhone : customerCleanPhone;
+  const whatsappConfirmationText = 
+`Hello ${lead.name}! 💫🪔
+Thank you for your enquiry with Adi’s Creation – Lights n Lamps (Diya Collection 2026).
+
+📌 Order Details:
+• Reference No: ${lead.reference_number}
+• Product: ${lead.product_name}
+• Quantity: ${lead.quantity} units
+• Delivery Mode: ${lead.delivery_preference}
+
+We have confirmed your requirement. Our team is preparing your handcrafted diyas and will share dispatch and delivery details with you.
+
+Warm regards,
+Rani Toshniwal
+Adi’s Creation, Hadapsar, Pune
+📞 7058182383 / 8208841529
+📧 knowaboutrani@gmail.com
+“Decorate Your Homes With Adi’s Creation”`;
+
+  return `https://wa.me/${formattedPhone}?text=${encodeURIComponent(whatsappConfirmationText)}`;
+};
 
 export default function AdminDashboardPage({ token, user, onLogout, onBackToSite }) {
   const [stats, setStats] = useState(null);
@@ -32,6 +59,7 @@ export default function AdminDashboardPage({ token, user, onLogout, onBackToSite
   const [deliveryFilter, setDeliveryFilter] = useState('ALL');
   const [selectedLead, setSelectedLead] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
 
   const fetchDashboardData = async () => {
     setRefreshing(true);
@@ -108,6 +136,35 @@ export default function AdminDashboardPage({ token, user, onLogout, onBackToSite
       }
     } catch (err) {
       console.error('Error quick updating status:', err);
+    }
+  };
+
+  const handleDeleteLead = async (leadId, e) => {
+    if (e) e.stopPropagation();
+    if (!window.confirm('Are you sure you want to permanently delete this enquiry entry? This action cannot be undone.')) {
+      return;
+    }
+    setDeletingId(leadId);
+    try {
+      const res = await fetch(`/api/admin/enquiries/${leadId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.success) {
+        setEnquiries(prev => prev.filter(l => l.id !== leadId));
+        if (selectedLead && selectedLead.id === leadId) {
+          setSelectedLead(null);
+        }
+        fetchDashboardData();
+      } else {
+        alert(data.error || 'Failed to delete lead');
+      }
+    } catch (err) {
+      console.error('Error deleting lead:', err);
+      alert('Failed to delete lead');
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -495,17 +552,51 @@ export default function AdminDashboardPage({ token, user, onLogout, onBackToSite
 
                       {/* Actions */}
                       <td style={{ padding: '1rem', textAlign: 'right' }}>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedLead(lead);
-                          }}
-                          className="btn btn-outline btn-sm"
-                          style={{ padding: '0.35rem 0.75rem', fontSize: '0.78rem' }}
-                        >
-                          <Eye size={13} />
-                          <span>View</span>
-                        </button>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', justifyContent: 'flex-end' }}>
+                          <a
+                            href={getWhatsAppConfirmationUrl(lead)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="btn btn-whatsapp btn-sm"
+                            style={{ padding: '0.35rem 0.65rem', fontSize: '0.75rem', textDecoration: 'none' }}
+                            title="Send WhatsApp Order Confirmation"
+                          >
+                            <MessageSquare size={13} />
+                            <span>WhatsApp</span>
+                          </a>
+
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedLead(lead);
+                            }}
+                            className="btn btn-outline btn-sm"
+                            style={{ padding: '0.35rem 0.65rem', fontSize: '0.75rem', background: '#FFF' }}
+                            title="View Full Details"
+                          >
+                            <Eye size={13} />
+                            <span>View</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={(e) => handleDeleteLead(lead.id, e)}
+                            disabled={deletingId === lead.id}
+                            className="btn btn-sm"
+                            style={{
+                              padding: '0.35rem 0.55rem',
+                              fontSize: '0.75rem',
+                              background: '#FEF3F2',
+                              color: '#B42318',
+                              border: '1px solid #FDA29B'
+                            }}
+                            title="Delete this enquiry entry"
+                          >
+                            <Trash2 size={13} />
+                            <span>{deletingId === lead.id ? '...' : 'Delete'}</span>
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -535,6 +626,11 @@ export default function AdminDashboardPage({ token, user, onLogout, onBackToSite
           token={token}
           onClose={() => setSelectedLead(null)}
           onUpdateLead={handleUpdateLead}
+          onDeleteLead={(deletedId) => {
+            setEnquiries(prev => prev.filter(l => l.id !== deletedId));
+            setSelectedLead(null);
+            fetchDashboardData();
+          }}
         />
       )}
 

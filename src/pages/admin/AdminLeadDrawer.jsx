@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
-import { X, Phone, MessageSquare, Mail, Calendar, CheckCircle, Clock, FileText, User, MapPin, Truck, Sparkles, Send } from 'lucide-react';
+import { X, Phone, MessageSquare, Mail, Calendar, CheckCircle, Clock, FileText, User, MapPin, Truck, Sparkles, Trash2, AlertTriangle, Send } from 'lucide-react';
 import { BRAND_INFO } from '../../data/brandInfo';
 
-export default function AdminLeadDrawer({ lead, token, onClose, onUpdateLead }) {
+export default function AdminLeadDrawer({ lead, token, onClose, onUpdateLead, onDeleteLead }) {
   const [status, setStatus] = useState(lead.status);
   const [notes, setNotes] = useState(lead.notes || '');
   const [followUpDate, setFollowUpDate] = useState(lead.follow_up_date || '');
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [logs, setLogs] = useState([]);
 
   React.useEffect(() => {
@@ -41,7 +43,6 @@ export default function AdminLeadDrawer({ lead, token, onClose, onUpdateLead }) 
       const data = await res.json();
       if (data.success) {
         onUpdateLead({ ...lead, status: newStatus });
-        // Refresh logs
         setLogs(prev => [
           { id: Date.now(), action: `Status Changed`, details: `Status updated to ${newStatus}`, timestamp: new Date().toISOString() },
           ...prev
@@ -83,10 +84,52 @@ export default function AdminLeadDrawer({ lead, token, onClose, onUpdateLead }) 
     }
   };
 
+  const handleDelete = async () => {
+    setIsDeleting(true);
+    try {
+      const res = await fetch(`/api/admin/enquiries/${lead.id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.success) {
+        if (onDeleteLead) onDeleteLead(lead.id);
+        onClose();
+      } else {
+        alert(data.error || 'Failed to delete entry');
+      }
+    } catch (err) {
+      console.error('Error deleting enquiry:', err);
+      alert('Network error while deleting entry');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   const customerCleanPhone = (lead.phone || '').replace(/\D/g, '');
-  const customerWhatsAppLink = `https://wa.me/${customerCleanPhone.length === 10 ? '91' + customerCleanPhone : customerCleanPhone}?text=${encodeURIComponent(
-    `Hello ${lead.name}, this is Rani Toshniwal from Adi's Creation (Lights n Lamps). Thank you for your enquiry (Ref: ${lead.reference_number}) for "${lead.product_name}" (Quantity: ${lead.quantity}). We would love to share availability and delivery details with you.`
-  )}`;
+  const formattedPhone = customerCleanPhone.length === 10 ? '91' + customerCleanPhone : customerCleanPhone;
+
+  // Professional WhatsApp Order Confirmation Template
+  const whatsappConfirmationText = 
+`Hello ${lead.name}! 💫🪔
+Thank you for your enquiry with Adi’s Creation – Lights n Lamps (Diya Collection 2026).
+
+📌 Order Details:
+• Reference No: ${lead.reference_number}
+• Product: ${lead.product_name}
+• Quantity: ${lead.quantity} units
+• Delivery Mode: ${lead.delivery_preference}
+
+We have confirmed your requirement. Our team is preparing your handcrafted diyas and will share dispatch and delivery details with you.
+
+Warm regards,
+Rani Toshniwal
+Adi’s Creation, Hadapsar, Pune
+📞 7058182383 / 8208841529
+📧 knowaboutrani@gmail.com
+“Decorate Your Homes With Adi’s Creation”`;
+
+  const confirmationWhatsAppLink = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(whatsappConfirmationText)}`;
 
   return (
     <div className="modal-overlay" onClick={onClose} role="dialog" aria-modal="true">
@@ -94,7 +137,7 @@ export default function AdminLeadDrawer({ lead, token, onClose, onUpdateLead }) 
         className="modal-content"
         onClick={(e) => e.stopPropagation()}
         style={{
-          maxWidth: '780px',
+          maxWidth: '820px',
           width: '100%',
           padding: 0,
           background: '#FFF'
@@ -138,7 +181,8 @@ export default function AdminLeadDrawer({ lead, token, onClose, onUpdateLead }) 
               border: '1px solid var(--border-subtle)',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center'
+              justifyContent: 'center',
+              cursor: 'pointer'
             }}
           >
             <X size={20} />
@@ -148,16 +192,48 @@ export default function AdminLeadDrawer({ lead, token, onClose, onUpdateLead }) 
         {/* Drawer Body */}
         <div style={{ padding: '1.75rem', overflowY: 'auto', maxHeight: 'calc(90vh - 80px)' }}>
 
-          {/* Top 1-Click Action Bar */}
+          {/* Official WhatsApp Order Confirmation Card */}
+          <div style={{
+            background: 'linear-gradient(135deg, #F0FDF4 0%, #DCFCE7 100%)',
+            border: '1.5px solid #86EFAC',
+            borderRadius: 'var(--radius-lg)',
+            padding: '1.25rem',
+            marginBottom: '1.75rem'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '0.75rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <MessageSquare size={18} color="#15803D" />
+                <span style={{ fontWeight: 800, color: '#14532D', fontSize: '0.95rem' }}>
+                  Send WhatsApp Order Confirmation
+                </span>
+              </div>
+              <span className="badge-gold" style={{ fontSize: '0.72rem' }}>
+                Direct Customer Phone: {lead.phone}
+              </span>
+            </div>
+
+            <p style={{ fontSize: '0.85rem', color: '#166534', lineHeight: 1.6, marginBottom: '1rem' }}>
+              Click below to send a pre-formatted official order confirmation directly to the customer's WhatsApp number with their reference code and order summary:
+            </p>
+
+            <a
+              href={confirmationWhatsAppLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn btn-whatsapp btn-sm"
+              style={{ padding: '0.65rem 1.25rem', fontWeight: 700 }}
+            >
+              <Send size={15} />
+              <span>Send WhatsApp Order Confirmation Now</span>
+            </a>
+          </div>
+
+          {/* Direct Contact Buttons */}
           <div style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
             gap: '0.75rem',
-            marginBottom: '1.75rem',
-            background: 'var(--bg-secondary)',
-            padding: '1rem',
-            borderRadius: 'var(--radius-lg)',
-            border: '1px solid var(--border-gold)'
+            marginBottom: '1.75rem'
           }}>
             <a
               href={`tel:${lead.phone}`}
@@ -165,27 +241,16 @@ export default function AdminLeadDrawer({ lead, token, onClose, onUpdateLead }) 
               style={{ width: '100%', background: '#FFF' }}
             >
               <Phone size={15} color="var(--maroon-800)" />
-              <span>Call Customer</span>
+              <span>Call {lead.phone}</span>
             </a>
 
             <a
-              href={customerWhatsAppLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn btn-whatsapp btn-sm"
-              style={{ width: '100%' }}
-            >
-              <MessageSquare size={15} />
-              <span>WhatsApp Message</span>
-            </a>
-
-            <a
-              href={`mailto:${lead.email}?subject=Adi's Creation Diya Enquiry (Ref: ${lead.reference_number})`}
+              href={`mailto:${lead.email}?subject=Adi's Creation Diya Order Confirmation (Ref: ${lead.reference_number})`}
               className="btn btn-outline btn-sm"
               style={{ width: '100%', background: '#FFF' }}
             >
               <Mail size={15} color="var(--maroon-800)" />
-              <span>Send Email</span>
+              <span>Email Customer</span>
             </a>
           </div>
 
@@ -328,7 +393,7 @@ export default function AdminLeadDrawer({ lead, token, onClose, onUpdateLead }) 
                 <textarea
                   id="lead-notes"
                   rows="2"
-                  placeholder="e.g. Customer interested in 20 pairs of Samai Diya, delivery to Mumbai by 20 Oct..."
+                  placeholder="e.g. Confirmed 4 sets available. Delivery scheduled to Pune by 20 Oct..."
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   className="form-control"
@@ -353,7 +418,7 @@ export default function AdminLeadDrawer({ lead, token, onClose, onUpdateLead }) 
           </form>
 
           {/* Activity Logs & History Timeline */}
-          <div>
+          <div style={{ marginBottom: '2rem' }}>
             <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--maroon-900)', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
               <Clock size={16} color="var(--maroon-800)" />
               <span>Lead Activity &amp; Contact History</span>
@@ -391,6 +456,84 @@ export default function AdminLeadDrawer({ lead, token, onClose, onUpdateLead }) 
                 </div>
               )}
             </div>
+          </div>
+
+          {/* Danger Zone: Delete Entry */}
+          <div style={{
+            background: '#FEF3F2',
+            border: '1px solid #FECDCA',
+            borderRadius: 'var(--radius-lg)',
+            padding: '1.25rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '1rem'
+          }}>
+            <div>
+              <div style={{ fontWeight: 700, color: '#B42318', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <AlertTriangle size={16} />
+                <span>Delete This Enquiry</span>
+              </div>
+              <div style={{ fontSize: '0.8rem', color: '#7A271A' }}>
+                Permanently delete this enquiry record and its activity history.
+              </div>
+            </div>
+
+            {showDeleteConfirm ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <button
+                  type="button"
+                  onClick={handleDelete}
+                  disabled={isDeleting}
+                  style={{
+                    background: '#D92D20',
+                    color: '#FFF',
+                    padding: '0.45rem 0.9rem',
+                    borderRadius: 'var(--radius-md)',
+                    fontSize: '0.8rem',
+                    fontWeight: 700
+                  }}
+                >
+                  {isDeleting ? 'Deleting...' : 'Yes, Delete Permanently'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowDeleteConfirm(false)}
+                  style={{
+                    background: '#FFF',
+                    color: 'var(--text-primary)',
+                    border: '1px solid var(--border-subtle)',
+                    padding: '0.45rem 0.75rem',
+                    borderRadius: 'var(--radius-md)',
+                    fontSize: '0.8rem'
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setShowDeleteConfirm(true)}
+                style={{
+                  background: '#FFF',
+                  color: '#B42318',
+                  border: '1px solid #FDA29B',
+                  padding: '0.45rem 0.9rem',
+                  borderRadius: 'var(--radius-md)',
+                  fontSize: '0.8rem',
+                  fontWeight: 600,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  cursor: 'pointer'
+                }}
+              >
+                <Trash2 size={14} />
+                <span>Delete Entry</span>
+              </button>
+            )}
           </div>
 
         </div>
