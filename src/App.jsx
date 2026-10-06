@@ -198,6 +198,7 @@ export default function App() {
       <Footer
         setActivePage={setActivePage}
         onOpenEnquiry={() => handleOpenEnquiry()}
+        adminToken={adminToken}
       />
 
       {/* Floating WhatsApp & Mobile Sticky Action Bar */}

@@ -1,8 +1,8 @@
 import React from 'react';
-import { Sparkles, Phone, MapPin, Mail, Shield, Download } from 'lucide-react';
+import { Sparkles, Phone, MapPin, Mail, Shield, Download, Lock, LayoutDashboard } from 'lucide-react';
 import { BRAND_INFO } from '../data/brandInfo';
 
-export default function Footer({ setActivePage, onOpenEnquiry }) {
+export default function Footer({ setActivePage, onOpenEnquiry, adminToken }) {
   const handleNav = (page) => {
     setActivePage(page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -14,7 +14,7 @@ export default function Footer({ setActivePage, onOpenEnquiry }) {
       color: '#FDFBF7',
       borderTop: '3px solid var(--gold-500)',
       paddingTop: '4rem',
-      paddingBottom: '2rem'
+      paddingBottom: '2.5rem'
     }}>
       <div className="container">
         
@@ -180,7 +180,13 @@ export default function Footer({ setActivePage, onOpenEnquiry }) {
                 {BRAND_INFO.founder}
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <MapPin size={16} color="#D4AF37" />
+                <Mail size={14} color="#D4AF37" />
+                <a href={`mailto:${BRAND_INFO.email}`} style={{ color: '#F6E6AC' }}>
+                  {BRAND_INFO.email}
+                </a>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <MapPin size={14} color="#D4AF37" />
                 <span>{BRAND_INFO.location}</span>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
@@ -213,9 +219,62 @@ export default function Footer({ setActivePage, onOpenEnquiry }) {
 
         </div>
 
+        {/* Dedicated Admin Dashboard Banner at bottom */}
+        <div style={{
+          background: 'linear-gradient(135deg, rgba(61, 8, 22, 0.9) 0%, rgba(92, 15, 34, 0.9) 100%)',
+          border: '1px solid rgba(212, 175, 55, 0.4)',
+          borderRadius: 'var(--radius-lg)',
+          padding: '1.25rem 1.75rem',
+          marginBottom: '2.5rem',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '1rem',
+          boxShadow: '0 8px 24px rgba(0,0,0,0.3)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <div style={{
+              width: '44px',
+              height: '44px',
+              borderRadius: '50%',
+              background: 'rgba(212, 175, 55, 0.15)',
+              border: '1px solid #D4AF37',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#F6E6AC'
+            }}>
+              <Shield size={22} />
+            </div>
+            <div>
+              <div style={{
+                fontFamily: 'var(--font-serif)',
+                fontWeight: 700,
+                fontSize: '1.1rem',
+                color: '#F6E6AC'
+              }}>
+                Admin Dashboard &amp; CRM Portal
+              </div>
+              <div style={{ fontSize: '0.82rem', color: '#EADBCE' }}>
+                Secure lead management, order tracking, and status controls for Adi's Creation
+              </div>
+            </div>
+          </div>
+
+          <button
+            onClick={() => handleNav(adminToken ? 'admin-dashboard' : 'admin-login')}
+            className="btn btn-gold btn-sm"
+            style={{ padding: '0.65rem 1.35rem', fontWeight: 700 }}
+          >
+            <LayoutDashboard size={16} />
+            <span>{adminToken ? 'Open Admin Dashboard' : 'Admin Login (Dashboard)'}</span>
+          </button>
+        </div>
+
         {/* Bottom Bar */}
         <div style={{
-          paddingTop: '2rem',
+          paddingTop: '1.75rem',
           borderTop: '1px solid rgba(212, 175, 55, 0.2)',
           display: 'flex',
           alignItems: 'center',
@@ -226,7 +285,7 @@ export default function Footer({ setActivePage, onOpenEnquiry }) {
           color: '#A89284'
         }}>
           <div>
-            © 2026 Adi’s Creation. All Rights Reserved. • Hadapsar, Pune
+            © 2026 Adi’s Creation. All Rights Reserved. • Hadapsar, Pune • Email: knowaboutrani@gmail.com
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
@@ -237,17 +296,18 @@ export default function Footer({ setActivePage, onOpenEnquiry }) {
               Privacy &amp; Terms
             </button>
             <button
-              onClick={() => handleNav('admin-login')}
+              onClick={() => handleNav(adminToken ? 'admin-dashboard' : 'admin-login')}
               style={{
                 color: '#D4AF37',
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '0.35rem',
-                cursor: 'pointer'
+                cursor: 'pointer',
+                fontWeight: 600
               }}
             >
-              <Shield size={13} />
-              <span>Admin Portal</span>
+              <Shield size={14} />
+              <span>Admin Portal ({adminToken ? 'Dashboard Active' : 'Sign In'})</span>
             </button>
           </div>
         </div>
