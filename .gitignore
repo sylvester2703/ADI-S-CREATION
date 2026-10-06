@@ -17,11 +17,12 @@ dist-ssr
 .env.*
 !.env.example
 
-# SQLite Database & Storage
+# SQLite & JSON Database Storage
 server/data/*.db
 server/data/*.db-journal
 server/data/*.db-wal
 server/data/*.db-shm
+server/data/*.json
 
 # Editor directories and files
 .vscode/*
